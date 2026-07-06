@@ -91,7 +91,8 @@
 
   /* ============ CIERRE ============ */
   .cierre{position:relative;background:var(--ink);color:#fff;padding:92px 0 100px;text-align:center;overflow:hidden;}
-  .cierre::before{content:"";position:absolute;inset:0;opacity:.05;background-image:radial-gradient(#fff 1px, transparent 1px);background-size:26px 26px;}
+  .cierre::before{content:"";position:absolute;inset:0;opacity:.05;background-image:radial-gradient(#fff 1px, transparent 1px);background-size:26px 26px;pointer-events:none;}
+.cierre .cta{position:relative;z-index:1;}
   .cierre h2{position:relative;font-family:'Archivo',sans-serif;font-weight:800;font-stretch:125%;font-size:clamp(28px,4vw,44px);letter-spacing:-.8px;line-height:1.1;}
   .cierre h2 em{font-style:normal;color:var(--green);}
   .cierre p{position:relative;margin-top:14px;color:#B9C2D4;font-size:16.5px;}
