@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prototipo — Uber Servicios del Hogar</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root{
+    --ink:#111827; --paper:#FFFFFF; --soft:#F5F7FA; --line:#EDF0F4;
+    --green:#1E7E45; --chipbg:#E7F5EC; --chipbd:#C3E6CF;
+    --slate:#6B7280; --blue:#2E4377; --gold:#B45309;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;}
+  body{background:#E8EBF0;height:100vh;overflow:hidden;display:flex;flex-direction:column;align-items:center;}
+  .toolbar{width:100%;background:#0B1020;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;flex-shrink:0;}
+  .toolbar .tl{font-size:12.5px;font-weight:600;color:#B9C2D4;letter-spacing:.3px;}
+  .toolbar .tl b{color:#fff;}
+  .toolbar button{background:#1E2A45;color:#fff;border:1px solid #33405F;border-radius:9px;padding:7px 16px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;}
+  .toolbar button:hover{background:#27365A;}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;width:100%;overflow:hidden;}
+  .phone{width:390px;height:860px;flex-shrink:0;display:flex;flex-direction:column;background:var(--paper);border-radius:32px;overflow:hidden;
+    box-shadow:0 24px 70px rgba(20,30,60,.22);border:1px solid #DDE2EA;position:relative;transform-origin:center center;}
+  .statusbar{height:42px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:0 24px;font-size:13px;font-weight:600;color:#1a1a1a;background:#fff;}
+  .appbar{background:var(--ink);color:#fff;padding:15px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+  .appbar .back{font-size:20px;opacity:.85;cursor:pointer;background:none;border:none;color:#fff;padding:0 4px;}
+  .appbar .back[disabled]{opacity:0;pointer-events:none;}
+  .appbar .title{font-size:15px;font-weight:600;}
+  .screen{display:none;padding-bottom:22px;animation:fadein .25s ease;}
+  .screen.active{display:block;}
+  @keyframes fadein{from{opacity:0;transform:translateX(14px);}to{opacity:1;transform:none;}}
+
+  .pad{padding:18px 20px 0;}
+  h2{font-size:19px;font-weight:800;color:var(--ink);letter-spacing:-.2px;}
+  .hint{font-size:13px;color:var(--slate);margin-top:4px;}
+
+  /* progreso */
+  .steps{display:flex;gap:6px;padding:14px 20px 0;flex-shrink:0;}
+  .steps span{height:4px;flex:1;border-radius:4px;background:var(--line);}
+  .steps span.on{background:var(--green);}
+  .screen.active{display:flex;flex-direction:column;flex:1;overflow-y:auto;min-height:0;}
+  #s2 .cta, #s5 .cta{margin-top:auto;}
+  #s3 .assign{margin:auto 0;}
+
+  /* pantalla 1: servicios */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:16px;}
+  .svc{border:1.5px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .15s;background:#fff;}
+  .ico{width:44px;height:44px;margin:0 auto;border-radius:50%;background:#EEF2FA;display:flex;align-items:center;justify-content:center;}
+  .ico svg{width:23px;height:23px;fill:none;stroke:var(--blue);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+  .svc .nm{font-size:13px;font-weight:600;margin-top:8px;color:var(--ink);}
+  .svc.sel{border-color:var(--green);background:var(--chipbg);box-shadow:0 4px 14px rgba(30,126,69,.15);}
+  .svc.sel .ico{background:#fff;}
+  .svc.sel .ico svg{stroke:var(--green);}
+  .lbl{font-size:12px;font-weight:700;letter-spacing:.8px;color:#9099A8;text-transform:uppercase;margin:22px 0 10px;}
+  .slots{display:flex;flex-wrap:wrap;gap:9px;}
+  .slot{border:1.5px solid var(--line);border-radius:22px;padding:9px 15px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;background:#fff;transition:all .15s;}
+  .slot.sel{border-color:var(--green);background:var(--chipbg);color:var(--green);}
+  .days{display:flex;gap:9px;}
+  .day{flex:1;text-align:center;border:1.5px solid var(--line);border-radius:12px;padding:11px 6px;font-size:13.5px;font-weight:600;color:var(--ink);cursor:pointer;background:#fff;transition:all .15s;}
+  .day.sel{border-color:var(--ink);background:var(--ink);color:#fff;}
+  .tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .tslot{border:1.5px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;background:#fff;transition:all .15s;}
+  .tslot.sel{border-color:var(--green);background:var(--chipbg);color:var(--green);}
+  .tslot.off{color:#B9C2CE;background:#F7F8FA;border-style:dashed;cursor:not-allowed;position:relative;}
+  .tslot.off::after{content:"No disponible";display:block;font-size:9.5px;font-weight:600;color:#C4CBD6;margin-top:2px;letter-spacing:.3px;}
+  .cta{display:block;width:calc(100% - 40px);margin:24px 20px 6px;background:var(--ink);color:#fff;text-align:center;
+    padding:15px;border-radius:13px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:opacity .15s;}
+  .cta:disabled{opacity:.35;cursor:not-allowed;}
+  .cta.green{background:var(--green);}
+
+  /* ============ HOME ============ */
+  .home-pad{padding:20px 20px 0;}
+  .greet{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-.3px;}
+  .greet-sub{font-size:13.5px;color:var(--slate);margin-top:3px;}
+  .scrollarea{flex:1;overflow-y:auto;min-height:0;}
+  #s1.active{overflow:hidden;}
+  .lblh{font-size:16px;font-weight:800;color:var(--ink);margin-top:22px;letter-spacing:-.2px;}
+  .promo{margin-top:22px;background:linear-gradient(120deg,#0F1522,#1C2B45);border-radius:18px;padding:20px 18px;color:#fff;position:relative;overflow:hidden;cursor:pointer;}
+  .promo::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:2px dashed rgba(39,196,110,.4);}
+  .promo .pk{font-size:10.5px;font-weight:700;letter-spacing:1.5px;color:#27C46E;text-transform:uppercase;}
+  .promo h3{font-size:17px;font-weight:800;margin-top:6px;letter-spacing:-.2px;}
+  .promo p{font-size:12.5px;color:#B9C2D4;margin-top:6px;max-width:34ch;line-height:1.45;}
+  .booking{margin-top:18px;background:#F0FAF4;border:1.5px solid var(--chipbd);border-radius:16px;padding:15px;display:none;}
+  .booking.on{display:block;}
+  .bk-top{display:flex;align-items:center;gap:11px;}
+  .bk-av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#4F6CB5,#2E4377);color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden;}
+  .bk-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .bk-name{font-size:14.5px;font-weight:700;color:var(--ink);}
+  .bk-meta{font-size:12px;color:var(--slate);margin-top:2px;}
+  .bk-status{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);}
+  .bk-status .dt{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.6s ease infinite;}
+  @keyframes blink{50%{opacity:.35;}}
+  .bk-live{display:block;width:100%;margin-top:13px;background:#fff;border:1.5px solid var(--green);color:var(--green);font-size:13px;font-weight:700;padding:11px;border-radius:11px;cursor:pointer;text-align:center;}
+  .bnav{margin-top:auto;border-top:1px solid var(--line);display:flex;background:#fff;flex-shrink:0;}
+  .bn{flex:1;text-align:center;padding:10px 0 12px;cursor:pointer;color:#9099A8;}
+  .bn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .bn div{font-size:10px;font-weight:600;margin-top:2px;}
+  .bn.on{color:var(--ink);}
+  .toast{position:absolute;left:50%;bottom:74px;transform:translateX(-50%);background:rgba(15,21,34,.92);color:#fff;font-size:12px;font-weight:600;padding:9px 16px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap;z-index:20;}
+  .toast.show{opacity:1;}
+
+  /* CTA sticky del pasaporte */
+  #s4{position:relative;}
+  #s4 .ctawrap{position:sticky;bottom:0;margin-top:auto;padding:26px 0 14px;background:linear-gradient(to top, #fff 55%, rgba(255,255,255,0));}
+  #s4 .ctawrap .cta{margin-top:0;margin-bottom:0;}
+  .assign{padding:70px 30px;text-align:center;}
+  .radar{position:relative;width:130px;height:130px;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;}
+  .wave{position:absolute;inset:0;border-radius:50%;border:2px solid var(--green);opacity:0;animation:wave 2.4s ease-out infinite;}
+  .wave.w2{animation-delay:.8s;}
+  .wave.w3{animation-delay:1.6s;}
+  @keyframes wave{0%{transform:scale(.42);opacity:.75;}100%{transform:scale(1.45);opacity:0;}}
+  .r-ico{width:64px;height:64px;border-radius:50%;background:#EEF2FA;border:1.5px solid #DCE4F0;display:flex;align-items:center;justify-content:center;z-index:1;}
+  .r-ico svg{width:30px;height:30px;fill:none;stroke:var(--blue);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+  .assign h3{font-size:17px;font-weight:700;color:var(--ink);}
+  .assign p{font-size:13.5px;color:var(--slate);margin-top:8px;}
+  .checkline{margin-top:26px;text-align:left;display:inline-block;}
+  .checkline div{font-size:13px;color:var(--slate);margin-bottom:9px;opacity:0;animation:pop .4s forwards;}
+  .checkline div:nth-child(1){animation-delay:.6s;} .checkline div:nth-child(2){animation-delay:1.9s;} .checkline div:nth-child(3){animation-delay:3.2s;}
+  .summary{margin:18px 20px 0;background:#F8FAFC;border:1px solid var(--line);border-radius:14px;padding:6px 16px;}
+  .srow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .srow:last-child{border-bottom:none;}
+  .srow span{color:var(--slate);}
+  .srow b{color:var(--ink);font-weight:600;text-align:right;}
+  .checkline b{color:var(--green);}
+  @keyframes pop{to{opacity:1;}}
+
+  /* pantalla 3: pasaporte */
+  .hero{padding:20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);}
+  .avatar{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#4F6CB5,#2E4377);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0;position:relative;overflow:hidden;}
+  .avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .hero .name{font-size:18px;font-weight:700;color:var(--ink);}
+  .hero .trade{font-size:13px;color:var(--slate);margin-top:2px;}
+  .vchip{display:inline-flex;align-items:center;gap:5px;background:var(--chipbg);border:1px solid var(--chipbd);color:var(--green);font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;margin-top:6px;}
+  .vchip .ck{width:13px;height:13px;border-radius:50%;background:var(--green);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:8.5px;}
+  .price-row{padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);}
+  .price-row .l{font-size:13px;color:var(--slate);}
+  .price-row .p{font-size:17px;font-weight:800;color:var(--ink);}
+  .incl-toggle{font-size:12px;color:var(--blue);font-weight:600;cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;}
+  .incl{display:none;background:#F8FAFC;border-bottom:1px solid var(--line);padding:12px 20px;font-size:12.5px;color:var(--slate);}
+  .incl.open{display:block;}
+  .incl div{margin-bottom:6px;} .incl b{color:var(--ink);}
+  .sec{padding:16px 20px;border-bottom:1px solid var(--line);}
+  .sec h3{font-size:11.5px;font-weight:800;color:#9099A8;letter-spacing:.8px;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+  .whatis{width:17px;height:17px;border-radius:50%;border:1.5px solid #B9C2D4;color:#8A93A8;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;background:none;}
+  .expl{display:none;background:#FFF9EC;border:1px solid #F1E3C0;border-radius:10px;padding:10px 12px;font-size:12.5px;color:#7A5C13;margin-top:10px;}
+  .expl.open{display:block;}
+  .pitem{display:flex;gap:11px;margin-top:14px;align-items:flex-start;}
+  .pic{width:30px;height:30px;border-radius:8px;background:#EEF2FA;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+  .ptx{font-size:13.5px;color:#374151;line-height:1.35;}
+  .ptx b{color:var(--ink);font-weight:600;}
+  .seal{display:inline-flex;align-items:center;gap:4px;background:var(--chipbg);color:var(--green);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;margin-top:4px;border:1px solid var(--chipbd);}
+  .sub{display:block;color:#9099A8;font-size:11.5px;margin-top:3px;}
+  .lic{margin-top:8px;background:linear-gradient(135deg,#FBFCFE,#EEF3FB);border:1px solid #D3DDEC;border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;}
+  .lic-photo{width:38px;height:47px;border-radius:5px;background:linear-gradient(160deg,#C7D2E5,#9FB1D0);flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;position:relative;overflow:hidden;}
+  .lic-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .lic-photo span{font-size:19px;opacity:.55;}
+  .lic-t{font-size:7.5px;font-weight:700;color:#8B97AC;letter-spacing:1px;}
+  .lic-n{font-size:12px;font-weight:700;color:#1F2937;font-family:monospace;margin-top:2px;}
+  .lic-d{font-size:8.5px;color:#6B7280;margin-top:2px;}
+  .stats{display:flex;padding:14px 0 2px;}
+  .stat{flex:1;text-align:center;}
+  .stat .n{font-size:19px;font-weight:800;color:var(--blue);}
+  .stat .c{font-size:10.5px;color:#9099A8;margin-top:2px;}
+  .review{background:#F8FAFC;border-radius:11px;padding:12px;margin-top:12px;}
+  .rw-head{display:flex;align-items:center;gap:9px;margin-bottom:7px;}
+  .rw-av{width:30px;height:30px;border-radius:50%;background:#D7DEE9;color:#5B6472;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden;}
+  .rw-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .rw-name{font-size:12px;font-weight:600;color:var(--ink);}
+  .rw-meta{font-size:10.5px;color:#9099A8;}
+  .review .st{color:#F5A623;font-size:12px;letter-spacing:1px;}
+  .review .tx{font-size:12px;color:#4B5563;font-style:italic;margin-top:5px;line-height:1.4;}
+  .review .wh{font-size:10.5px;color:#9099A8;margin-top:5px;}
+
+  /* pantalla 4: confirmación */
+  .confirm{padding:34px 24px 6px;text-align:center;}
+  .bigcheck{width:86px;height:86px;margin:0 auto 18px;}
+  .bigcheck svg{width:100%;height:100%;overflow:visible;}
+  .bc-ring{fill:#F0FAF4;stroke:var(--green);stroke-width:2.4;stroke-linecap:round;
+    stroke-dasharray:180;stroke-dashoffset:180;transform:rotate(-90deg);transform-origin:center;
+    animation:bcdraw .65s ease-out forwards;}
+  .bc-check{fill:none;stroke:var(--green);stroke-width:4.2;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:42;stroke-dashoffset:42;animation:bcdraw .4s .55s ease-out forwards;}
+  .bc-spark{stroke:var(--green);stroke-width:2.2;stroke-linecap:round;opacity:0;animation:bcpop .45s .95s ease-out forwards;}
+  @keyframes bcdraw{to{stroke-dashoffset:0;}}
+  @keyframes bcpop{0%{opacity:0;transform:scale(.6);transform-origin:center;}60%{opacity:1;}100%{opacity:.85;transform:scale(1);}}
+  .confirm h2{font-size:20px;}
+  .confirm .when{font-size:14px;color:var(--slate);margin-top:8px;}
+  .confirm .when b{color:var(--ink);}
+  .acomp{margin:22px 20px 0;background:#F0FAF4;border:1.5px solid var(--chipbd);border-radius:15px;padding:16px;text-align:left;}
+  .acomp h4{font-size:13.5px;font-weight:800;color:var(--green);display:flex;align-items:center;gap:8px;}
+  .acomp p{font-size:12.5px;color:#3E5748;margin-top:8px;line-height:1.45;}
+  .acomp .row{display:flex;align-items:center;gap:9px;margin-top:11px;font-size:12.5px;color:#374151;}
+  .acomp .dot{width:8px;height:8px;border-radius:50%;background:var(--green);}
+  .reset{display:block;margin:16px auto 0;font-size:12px;color:#9099A8;background:none;border:none;cursor:pointer;text-decoration:underline;}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="tl"><b>Prototipo</b> &middot; Uber Servicios del Hogar &middot; flujo principal</span>
+  <button onclick="reset()">&#8635; Reiniciar prototipo</button>
+</div>
+<div class="stage">
+<div class="phone">
+  <div class="statusbar"><span>9:41</span><span>5G &nbsp;100%</span></div>
+  <div class="appbar">
+    <button class="back" id="backBtn" onclick="goBack()" disabled>&#8249;</button>
+    <span class="title" id="appTitle">Servicios del Hogar</span>
+  </div>
+  <div class="steps"><span id="st1"></span><span id="st2"></span><span id="st3"></span><span id="st4"></span></div>
+
+  <!-- ============ PANTALLA 1: HOME / SERVICIOS ============ -->
+  <section class="screen active" id="s1">
+    <div class="scrollarea">
+    <div class="home-pad">
+      <div class="greet">Hola &#128075;</div>
+      <div class="greet-sub">Tu casa, en manos verificadas.</div>
+
+      <div class="lblh">¿Qué necesita tu casa?</div>
+      <div class="grid">
+        <div class="svc" data-svc="Plomería" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3c-2.5 3.4-4.5 6.2-4.5 8.7a4.5 4.5 0 0 0 9 0C16.5 9.2 14.5 6.4 12 3z"/><path d="M9.8 13.2a2.3 2.3 0 0 0 2.1 2.4"/></svg></div><div class="nm">Plomería</div></div>
+        <div class="svc" data-svc="Electricidad" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><path d="M13 2 5 13.5h5L10.5 22 19 10h-5.5L13 2z"/></svg></div><div class="nm">Electricidad</div></div>
+        <div class="svc" data-svc="Aseo del hogar" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><path d="M14 3l-2.5 8.5"/><path d="M6.5 21c.6-3.6 2.4-6.8 5-9.5"/><path d="M6.5 21h11c-.4-4-1.8-7.2-6-9.5"/><path d="M9.5 16.5l1 4.5M13.5 15.5l1.5 5.5"/></svg></div><div class="nm">Aseo del hogar</div></div>
+        <div class="svc" data-svc="Reparaciones" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><path d="M14.5 6.5a4 4 0 0 1 5-5l-2.8 2.8 2 2L21.5 3.5a4 4 0 0 1-5 5L8 17a2.1 2.1 0 0 1-3-3l9.5-7.5z"/></svg></div><div class="nm">Reparaciones</div></div>
+        <div class="svc" data-svc="Pintura" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="14" height="6" rx="1.5"/><path d="M18 5h2.5v5L13 12v3"/><rect x="11.5" y="15" width="3" height="6" rx="1"/></svg></div><div class="nm">Pintura</div></div>
+        <div class="svc" data-svc="Cerrajería" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="8" cy="8" r="4.5"/><path d="M11.5 11.5 20 20M16 16l2.5-2.5M18.5 18.5 21 16"/></svg></div><div class="nm">Cerrajería</div></div>
+        <div class="svc" data-svc="Jardinería" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M12 9C12 5 9.5 3 5 3c0 4.5 2.5 6.5 7 6z"/><path d="M12 13c0-3 2-5 6.5-5 0 4-2 6-6.5 5z"/></svg></div><div class="nm">Jardinería</div></div>
+        <div class="svc" data-svc="Electrodomésticos" onclick="pick(this)"><div class="ico"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M8 6.5h.01M11 6.5h2"/></svg></div><div class="nm">Electrodomésticos</div></div>
+      </div>
+
+      <div class="promo" onclick="toast('Cada técnico llega con identidad, licencia e historial verificados.')">
+        <div class="pk">El sello que lo cambia todo</div>
+        <h3>Pasaporte de Confianza</h3>
+        <p>Conoce exactamente quién llega a tu casa, antes de abrir la puerta.</p>
+      </div>
+    </div>
+    </div>
+
+    <div class="bnav">
+      <div class="bn on"><svg viewBox="0 0 24 24"><path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1v-8z"/></svg><div>Inicio</div></div>
+      <div class="bn" onclick="toast('No incluido en el prototipo')"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg><div>Servicios</div></div>
+      <div class="bn" id="tabAct" onclick="verActividad()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><div>Actividad</div></div>
+      <div class="bn" onclick="toast('No incluido en el prototipo')"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20c1.2-3.2 3.8-5 7-5s5.8 1.8 7 5"/></svg><div>Cuenta</div></div>
+    </div>
+    <div class="toast" id="toast"></div>
+  </section>
+
+  <!-- ============ PANTALLA 2: HORARIO ============ -->
+  <section class="screen" id="s2">
+    <div class="pad">
+      <h2>¿Cuándo te sirve?</h2>
+      <p class="hint" id="svcPicked">Plomería</p>
+      <div class="lbl">Día</div>
+      <div class="days">
+        <div class="day sel" data-day="Hoy" onclick="pickDay(this)">Hoy</div>
+        <div class="day" data-day="Mañana" onclick="pickDay(this)">Mañana</div>
+        <div class="day" data-day="Jueves" onclick="pickDay(this)">Jueves</div>
+      </div>
+      <div class="lbl">Franja horaria</div>
+      <div class="tgrid" id="tgrid"></div>
+    </div>
+    <button class="cta" id="findBtn" onclick="toAssign()" disabled>Buscar técnico disponible</button>
+  </section>
+
+  <!-- ============ PANTALLA 3: ASIGNANDO ============ -->
+  <section class="screen" id="s3">
+    <div class="assign">
+      <div class="radar">
+        <span class="wave"></span><span class="wave w2"></span><span class="wave w3"></span>
+        <div class="r-ico" id="radarIco"></div>
+      </div>
+      <h3>Buscando tu técnico…</h3>
+      <p id="svcEcho">Plomería · Hoy, 2:00–4:00 p.m.</p>
+      <div class="checkline">
+        <div><b>&#10003;</b> Identidad y antecedentes verificados</div>
+        <div><b>&#10003;</b> Licencia profesional validada</div>
+        <div><b>&#10003;</b> Disponible en tu zona</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PANTALLA 4: PASAPORTE (momento de valor) ============ -->
+  <section class="screen" id="s4">
+    <div class="hero">
+      <div class="avatar">CR<img src="https://randomuser.me/api/portraits/men/32.jpg" alt="" onerror="this.remove()"></div>
+      <div>
+        <div class="name">Carlos R.</div>
+        <div class="trade" id="tradeEcho">Plomería y reparaciones</div>
+        <span class="vchip"><span class="ck">&#10003;</span> Identidad verificada</span>
+      </div>
+    </div>
+    <div class="price-row">
+      <div>
+        <div class="l">Tarifa estimada del servicio</div>
+        <button class="incl-toggle" onclick="document.getElementById('incl').classList.toggle('open')">¿Qué incluye esta tarifa?</button>
+      </div>
+      <div class="p">$95.000</div>
+    </div>
+    <div class="incl" id="incl">
+      <div><b>Incluye lo que una contratación directa no te da:</b></div>
+      <div>&#10003; Técnico con identidad y antecedentes verificados</div>
+      <div>&#10003; Garantía Uber: si algo sale mal, respondemos</div>
+      <div>&#10003; Seguimiento en vivo de tu primer servicio</div>
+      <div>&#10003; Pago protegido en la app, sin efectivo</div>
+    </div>
+
+    <div class="sec">
+      <h3>Pasaporte de confianza <button class="whatis" onclick="document.getElementById('expl').classList.toggle('open')">?</button></h3>
+      <div class="expl" id="expl">Es el documento digital del técnico: reúne en un solo lugar su identidad verificada, su licencia, su historial y lo que otros clientes dicen de él, para que sepas exactamente quién llega a tu casa.</div>
+      <div class="pitem"><div class="pic">&#128100;</div><div class="ptx"><b>Identidad y antecedentes</b><br><span class="seal">&#10003; Validado por Uber &middot; 12 mar 2025</span></div></div>
+      <div class="pitem"><div class="pic">&#128196;</div><div class="ptx"><b>Licencia técnica en plomería</b><br><span class="seal">&#10003; Verificada</span>
+        <div class="lic">
+          <div class="lic-photo"><span>&#128100;</span><img src="https://randomuser.me/api/portraits/men/32.jpg" alt="" onerror="this.remove()"></div>
+          <div><div class="lic-t">LICENCIA PROFESIONAL</div><div class="lic-n">N.º PL-04&bull;&bull;7</div><div class="lic-d">Emitida ene 2024 &middot; Vigente ene 2027</div></div>
+        </div>
+      </div></div>
+      <div class="pitem"><div class="pic">&#128205;</div><div class="ptx"><b>Opera en el sur de Pasto</b><span class="sub">Negocio registrado &middot; 1 año en la plataforma</span></div></div>
+      <div class="pitem"><div class="pic">&#128106;</div><div class="ptx"><b>Contratado por 5 personas de tu zona</b><span class="sub">Vecinos de tu barrio lo han usado</span></div></div>
+      <div class="pitem"><div class="pic">&#128737;</div><div class="ptx"><b>Trabajo respaldado por la Garantía Uber</b><span class="sub">Si algo sale mal, Uber responde</span></div></div>
+    </div>
+
+    <div class="sec">
+      <h3>Historial en la plataforma</h3>
+      <div class="stats">
+        <div class="stat"><div class="n">83</div><div class="c">trabajos</div></div>
+        <div class="stat"><div class="n">4.6</div><div class="c">calificación</div></div>
+        <div class="stat"><div class="n">94%</div><div class="c">puntualidad</div></div>
+      </div>
+      <div class="review">
+        <div class="rw-head">
+          <div class="rw-av">MG<img src="https://randomuser.me/api/portraits/women/68.jpg" alt="" onerror="this.remove()"></div>
+          <div><div class="rw-name">Marcela G.</div><div class="rw-meta">hace 1 semana &middot; con foto</div></div>
+        </div>
+        <div class="st">&#9733;&#9733;&#9733;&#9733;&#9734;</div>
+        <div class="tx">"Llegó puntual y dejó todo funcionando. Lo dejé solo un rato y sin problema."</div>
+      </div>
+    </div>
+
+    <div class="ctawrap"><button class="cta green" onclick="toConfirm()">Agendar con Carlos</button></div>
+  </section>
+
+  <!-- ============ PANTALLA 5: CONFIRMACIÓN ============ -->
+  <section class="screen" id="s5">
+    <div class="confirm">
+      <div class="bigcheck"><svg viewBox="0 0 64 64">
+        <circle class="bc-ring" cx="32" cy="32" r="28"/>
+        <path class="bc-check" d="M20 33l8.5 8.5L44 24"/>
+        <g class="bc-spark"><path d="M55 12l3-3M59 22l4-1M50 6l1-4"/></g>
+      </svg></div>
+      <h2>Servicio agendado</h2>
+      <p class="when">Carlos R. llega <b id="whenEcho">hoy entre 2:00 y 4:00 p.m.</b></p>
+    </div>
+    <div class="summary">
+      <div class="srow"><span>Servicio</span><b id="sumSvc">Plomería</b></div>
+      <div class="srow"><span>Técnico</span><b>Carlos R. &middot; verificado</b></div>
+      <div class="srow"><span>Horario</span><b id="sumSlot">Hoy, 2:00–4:00 p.m.</b></div>
+      <div class="srow"><span>Tarifa estimada</span><b>$95.000</b></div>
+    </div>
+    <div class="acomp">
+      <h4>&#128064; Acompañamiento de tu primer servicio</h4>
+      <p>Como es tu primera vez con Carlos, activamos el seguimiento en vivo sin costo. No necesitas quedarte en casa:</p>
+      <div class="row"><span class="dot"></span> Te avisamos cuando llegue y cuando salga</div>
+      <div class="row"><span class="dot"></span> Sigues el estado del servicio en tiempo real</div>
+      <div class="row"><span class="dot"></span> Soporte de Uber a un toque si algo pasa</div>
+    </div>
+    <button class="cta" onclick="goHome()">Listo, seguir con mi día</button>
+    <button class="reset" onclick="alert('En la app real podrías reprogramar o cancelar sin costo hasta 2 horas antes.')" style="color:var(--blue);font-weight:600;">Reprogramar o cancelar sin costo</button>
+  </section>
+</div>
+</div>
+
+<script>
+  let svc=null, slot=null, day="Hoy", cur=1, reserva=null, selIcon=null;
+  const titles={1:"Inicio",2:"Elige el horario",3:"Buscando técnico",4:"Tu técnico asignado",5:"Confirmación"};
+
+  function show(n){
+    document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+    const sc=document.getElementById('s'+n);
+    sc.classList.add('active');
+    // home: sin appbar ni barra de progreso
+    document.querySelector('.appbar').style.display = (n===1?'none':'flex');
+    document.querySelector('.steps').style.display = (n===1?'none':'flex');
+    for(let i=1;i<=4;i++) document.getElementById('st'+i).classList.toggle('on', i<=n-1);
+    document.getElementById('appTitle').textContent = titles[n];
+    document.getElementById('backBtn').disabled = (n===1||n===3);
+    cur=n;
+    if(n===1) document.querySelectorAll('.svc.sel').forEach(s=>s.classList.remove('sel'));
+    sc.scrollTop=0;
+    const sa=sc.querySelector('.scrollarea'); if(sa) sa.scrollTop=0;
+  }
+  function toast(msg){
+    const t=document.getElementById('toast');
+    t.textContent=msg; t.classList.add('show');
+    clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), 2400);
+  }
+  function verActividad(){
+    if(reserva) toast('Tu reserva: Carlos R. · '+reserva);
+    else toast('Aún no tienes reservas');
+  }
+  function clearFlow(){
+    svc=null; slot=null; day="Hoy"; selIcon=null;
+    document.querySelectorAll('.svc').forEach(s=>s.classList.remove('sel'));
+    document.querySelectorAll('.day').forEach(d=>d.classList.toggle('sel', d.dataset.day==="Hoy"));
+    document.getElementById('findBtn').disabled=true;
+    document.getElementById('incl').classList.remove('open');
+    document.getElementById('expl').classList.remove('open');
+  }
+  function goHome(){
+    reserva = svc+" · "+slot;
+    document.getElementById('tabAct').style.color='var(--green)';
+    clearFlow();
+    show(1);
+    setTimeout(()=>toast('Reserva confirmada · guardada en Actividad'), 350);
+  }
+
+  const FR=["8:00–10:00 a.m.","10:00–12:00 m.","12:00–2:00 p.m.","2:00–4:00 p.m.","4:00–6:00 p.m."];
+  // disponibilidad por día (índices de FR no disponibles)
+  const OFF={"Hoy":[0,1,2],"Mañana":[3],"Jueves":[1]};
+
+  function renderSlots(){
+    const g=document.getElementById('tgrid'); g.innerHTML="";
+    FR.forEach((f,i)=>{
+      const d=document.createElement('div');
+      const off=OFF[day].includes(i);
+      d.className="tslot"+(off?" off":"");
+      d.textContent=f;
+      if(!off) d.onclick=()=>{ 
+        g.querySelectorAll('.tslot').forEach(t=>t.classList.remove('sel'));
+        d.classList.add('sel'); slot=day+", "+f;
+        document.getElementById('findBtn').disabled=false;
+      };
+      g.appendChild(d);
+    });
+  }
+  function pickDay(el){
+    document.querySelectorAll('.day').forEach(d=>d.classList.remove('sel'));
+    el.classList.add('sel'); day=el.dataset.day; slot=null;
+    document.getElementById('findBtn').disabled=true;
+    renderSlots();
+  }
+  function pick(el){
+    document.querySelectorAll('.svc').forEach(s=>s.classList.remove('sel'));
+    el.classList.add('sel'); svc=el.dataset.svc;
+    selIcon = el.querySelector('svg').outerHTML;
+    document.getElementById('svcPicked').textContent = svc;
+    renderSlots();
+    setTimeout(()=>show(2), 280); // auto-avance
+  }
+
+  // ===== FIT SCREEN: escala el teléfono a la altura disponible, con techo 1:1 =====
+  function fit(){
+    const stage=document.querySelector('.stage');
+    const phone=document.querySelector('.phone');
+    const pad=24;
+    const scale=Math.min(1, (stage.clientHeight-pad)/860, (stage.clientWidth-pad)/390);
+    phone.style.transform='scale('+scale+')';
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('load', fit);
+  show(1);
+  fit();
+  function toAssign(){
+    document.getElementById('svcEcho').textContent = svc+" · "+slot;
+    document.getElementById('tradeEcho').textContent = svc+" y reparaciones";
+    document.getElementById('whenEcho').textContent = slot.toLowerCase().replace('–',' y ');
+    document.getElementById('sumSvc').textContent = svc;
+    document.getElementById('sumSlot').textContent = slot;
+    if(selIcon) document.getElementById('radarIco').innerHTML = selIcon;
+    show(3);
+    setTimeout(()=>show(4), 4500);
+  }
+  function toConfirm(){ show(5); }
+  function goBack(){ if(cur===2) show(1); else if(cur===4) show(2); else if(cur===5) show(4); }
+  function reset(){
+    clearFlow();
+    reserva=null;
+    document.getElementById('tabAct').style.color='';
+    show(1);
+  }
+</script>
+</body>
+</html>
